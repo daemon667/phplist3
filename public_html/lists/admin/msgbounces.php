@@ -52,21 +52,35 @@ if (!$messageid) {
 $userTable = $GLOBALS['tables']['user'];
 
 $messageBounceTable = $GLOBALS['tables']['user_message_bounce'];
-$req = Sql_Query("select u.id as userid, u.email, count(mb.bounce) as totalbounces, mb.time from $messageBounceTable mb join $userTable u
-on u.id = mb.user where mb.message = '$messageid';
-  ");
-var_dump($req);
+$query= "select  u.id as userid, u.email, mb.time from $messageBounceTable mb join $userTable u
+on u.id = mb.user where mb.message = '$messageid' ";
+var_dump($query);
+
+$req = Sql_Query($query);
+
+$total = Sql_Affected_Rows();
+$limit = '';
+$numpp = 150;
+$start = empty($_GET['start']) ? 0 : sprintf('%d', $_GET['start']);
+if ($total > $numpp ) {
+    $limit = "limit $start,".$numpp;
+    echo simplePaging('msgbounces&amp;id='.$messageid, $start, $total, $numpp);
+
+    $query .= $limit;
+    $req = Sql_Query($query);
+
+
+}
 $messagedata = loadMessageData($messageid);
 $bouncels = new WebblerListing(s('Bounces on').' '.shortenTextDisplay($messagedata['subject'], 30));
 $bouncels->setElementHeading('Subscriber ID');
 while ($row = Sql_Fetch_Array($req)) {
-    var_dump($row);
 
-           $bouncels->addElement($row['userid'], PageUrl2('user&amp;id='.$row['userid']));
-           $bouncels->addColumn($row['userid'], s('Subscriber address'), PageLink2('user&id='.$row['userid'], $row['email']));
-           $bouncels->addColumn($row['userid'], s('Time'), $row['time']);
-           echo $bouncels->display();
+    $bouncels->addElement($row['userid'], PageUrl2('user&amp;id='.$row['userid']));
+    $bouncels->addColumn($row['userid'], s('Subscriber address'), PageLink2('user&id='.$row['userid'], $row['email']));
+    $bouncels->addColumn($row['userid'], s('Time'), $row['time']);
 
 
 
 }
+echo $bouncels->display();
